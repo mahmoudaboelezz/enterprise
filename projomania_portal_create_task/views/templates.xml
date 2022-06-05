@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+
+        <template id="portal_my_project" inherit_id="project.portal_my_projects">
+
+            <xpath expr="//t[@t-if='projects']/tbody/tr" position="inside">
+                <td>
+                    <a role="button" t-attf-href="/task/create?filterby=#{project.id}" class="btn btn-sm btn-secondary"
+                       t-if="project.allow_add_tasks">
+                        <span class="fa fa-plus" role="img" aria-label="Add Tasks" title="Add Tasks"/>
+                        <span>Add Tasks</span>
+                    </a>
+                </td>
+            </xpath>
+
+        </template>
+<!--        <template id="portal_layout" name="Portal layout: project menu entry" inherit_id="portal.portal_breadcrumbs" priority="40">-->
+<!--            <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">-->
+<!--                <li t-if="page_name == 'task' or (task and not project)" t-attf-class="breadcrumb-item #{'active ' if not task else ''}">-->
+<!--                    <a role="button" t-attf-href="/task/create?filterby=#{project.id}" class="btn btn-sm btn-secondary" t-if="project.allow_add_tasks">-->
+<!--                    <span class="fa fa-plus" role="img" aria-label="Add Tasks" title="Add Tasks"/>-->
+<!--                    <span>Add Tasks</span>-->
+<!--                </a>-->
+<!--                </li>-->
+<!--            </xpath>-->
+<!--        </template>-->
+
+        <template id="portal_my_tasks" inherit_id="project.portal_tasks_list">
+            <!-- position values: after|before|replace|attributes|inside -->
+            <xpath expr="//t[@t-if='grouped_tasks']" position="after">
+                <a role="button" t-attf-href="/task/create?{{ keep_query() }}"
+                   class="btn btn-sm btn-secondary float-right" t-if="filterby != 'all' and project.allow_add_tasks">
+                    <span class="fa fa-plus" role="img" aria-label="Add Tasks" title="Add Tasks"/>
+                    <span>Add Tasks</span>
+                </a>
+            </xpath>
+        </template>
+
+        <template id="portal_create_task">
+            <t t-call="portal.portal_layout">
+                <h4>New Task for
+                    <t t-esc="project_detail.name"/>
+                </h4>
+                <form action="/website/form/" method="post" data-model_name="project.task"
+                      t-att-data-success_page="tasks_list" class="s_website_form container-fluid mt32"
+                      enctype="multipart/form-data" data-editable-form="false">
+                    <input type="text" class="form-control o_website_form_input d-none" name="project_id" required=""
+                           t-att-value="project_detail.id"/>
+                    <input type="text" class="form-control o_website_form_input d-none" name="create_uid" required=""
+                           t-att-value="creator"/>
+                    <div class="form-group row form-field o_website_form_required_custom">
+                        <label class="col-lg-3 col-md-4 col-form-label" for="name">Short Description</label>
+                        <div class="col-lg-7 col-md-8">
+                            <input type="text" class="form-control o_website_form_input" name="name" required=""/>
+                        </div>
+                    </div>
+                    <div class="form-group row form-field o_website_form_required_custom">
+                        <label class="col-lg-3 col-md-4 col-form-label" for="description">Description</label>
+                        <div class="col-lg-7 col-md-8">
+                            <textarea class="form-control" name="description" required=""/>
+                        </div>
+                    </div>
+
+                    <div class="form-group row">
+                        <div class="offset-lg-3 offset-md-4 col-md-8 col-lg-7">
+                            <a href="#" role="button" class="btn btn-primary btn-lg o_website_form_send">Send</a>
+                            <span id="o_website_form_result"></span>
+                        </div>
+                    </div>
+                </form>
+            </t>
+        </template>
+
+        <template id="portal_layout" name="Portal layout: project menu entry" inherit_id="portal.portal_breadcrumbs"
+                  priority="40">
+            <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+                <li t-if="page_name == 'create_task' or create_task"
+                    t-attf-class="breadcrumb-item #{'active ' if not create_task else ''}">
+                    <a t-if="create_task" t-attf-href="/my/tasks?{{ keep_query() }}">Tasks</a>
+                    <t t-else="">Tasks</t>
+                </li>
+                <li t-if="create_task" class="breadcrumb-item active">
+                    <span>New</span>
+                </li>
+            </xpath>
+        </template>
+
+        <template id="portal_my_task" inherit_id="project.portal_my_task">
+            <!-- position values: after|before|replace|attributes|inside -->
+            <xpath expr="//span[@t-field='task.name']/../.." position="after">
+                <div class="row mb-4">
+                    <strong class="d-block mb-2 ml-2">Effort Estimation:</strong>
+                        <t t-set="customer_feedback" t-value="task.customer_feedback or 'waiting_approval'"/>
+                        <div class="col-12 col-md-6 mb-1 ml-1">
+                            <span id="customer_feedback" t-att-style="customer_feedback=='waiting_approval' and 'color:orange' or customer_feedback=='rejected' and 'color:red' or customer_feedback=='approved' and 'color:green'">(<t t-esc="customer_feedback and customer_feedback.replace('_', ' ').capitalize() or 'Waiting approval'"/>)</span>
+                            <span class="pull-right md-right text-right" style="float:right;">
+                                <input type="text" name="task_id_estimation" id="task_id_estimation" class="d-none" t-att-value="task.id"/>
+                                <button t-att-class="'btn btn-primary text-right %s' % 'd-none' if customer_feedback != 'waiting_approval' else 'btn btn-primary text-right fa fa-check'" id="approve_task_estimation">Approve</button>
+                                <button t-att-class="'btn btn-secondary text-right %s' % 'd-none' if customer_feedback != 'waiting_approval' else 'btn btn-secondary text-right fa fa-times'" t-value="task.id" id="reject_task_estimation">Reject</button>
+                            </span>
+                        </div>
+                        <div class="col-12 col-md-6 mb-1" t-if="task.planned_hours">
+                            <strong>Estimated Time:</strong>
+                            <span t-esc="task.print_planned_hours_website(task.planned_hours)"/>
+                        </div>
+                        <div class="col-12 col-md-6 mb-1">
+                            <strong>Estimated Cost:</strong>
+                            <span t-field="task.estimated_cost"/>
+                        </div>
+                </div>
+            </xpath>
+        </template>
+
+
+    </data>
+</odoo>
